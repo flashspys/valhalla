@@ -16,7 +16,6 @@
 #include "worker.h"
 
 #include "test.h"
-#include "utils.h"
 
 using namespace valhalla;
 using namespace valhalla::midgard;
@@ -1231,7 +1230,7 @@ TEST(Mapmatch, test_loop_matching) {
 TEST(Mapmatch, test_intersection_matching) {
   std::vector<std::string> test_cases = {
       R"({"shape":[
-          {"lat": 52.098126, "lon": 5.129618, "type": "break", "node_snap_tolerance": 0},
+          {"lat": 52.098127, "lon": 5.129618, "type": "break", "node_snap_tolerance": 0},
           {"lat": 52.098128, "lon": 5.129725, "type": "break", "node_snap_tolerance": 0}],
           "costing":"auto","shape_match":"map_snap"})",
       R"({"shape":[
@@ -1242,7 +1241,7 @@ TEST(Mapmatch, test_intersection_matching) {
           "costing":"auto","shape_match":"map_snap"})",
       R"({"shape":[
           {"lat": 52.095164, "lon": 5.128560, "type": "break", "node_snap_tolerance": 5},
-          {"lat": 52.095294, "lon": 5.130906, "type": "break", "node_snap_tolerance": 5},
+          {"lat": 52.095295, "lon": 5.130906, "type": "break", "node_snap_tolerance": 5},
           {"lat": 52.094478, "lon": 5.130406, "type": "break", "node_snap_tolerance": 5}],
           "costing":"auto","shape_match":"map_snap"})"};
 
@@ -1426,16 +1425,17 @@ TEST(Mapmatch, openlr_parameter_true_osrm_api) {
   const auto& matches = response.get_child("matchings");
   EXPECT_EQ(matches.size(), 1);
   const std::vector<std::string>& expected = {
-      "CwOduyULYhtpAAAV//0bGQ==", "CwOdxCULYBtqAAAM//4bGg==", "CwOdySULXxtrAAAf//EbGw==",
-      "CwOd1yULVxtrAQBV/9AbGw==", "CwOduyULYj/gAAACAAA/EA==",
+      "CwOduyULYiKJAAAV//0iGw==",
+      "CwOdxCULYCKJAAAN//8iGw==",
+      "CwOdySULXyKJAAAf//EiGw==",
+      "CwOd1yULWCKLAQBV/84iGw==",
   };
   for (const auto& match : matches) {
-    const auto& references = match.second.get_child("linear_references");
-    EXPECT_EQ(references.size(), 5);
-    for (const auto& reference : references) {
-      const std::string& actual = reference.second.get_value<std::string>();
-      EXPECT_TRUE(std::find(expected.begin(), expected.end(), actual) != expected.end());
-    }
+    std::vector<std::string> references;
+    for (const auto& reference : match.second.get_child("linear_references"))
+      references.push_back(reference.second.get_value<std::string>());
+    EXPECT_EQ(references.size(), 4);
+    EXPECT_EQ(expected, references);
   }
 }
 
@@ -1447,15 +1447,16 @@ TEST(Mapmatch, openlr_parameter_true_native_api) {
   tyr::actor_t actor(conf, true);
   const auto& response = test::json_to_pt(actor.trace_route(request));
   const std::vector<std::string>& expected = {
-      "CwOduyULYhtpAAAV//0bGQ==", "CwOdxCULYBtqAAAM//4bGg==", "CwOdySULXxtrAAAf//EbGw==",
-      "CwOd1yULVxtrAQBV/9AbGw==", "CwOduyULYj/gAAACAAA/EA==",
+      "CwOduyULYiKJAAAV//0iGw==",
+      "CwOdxCULYCKJAAAN//8iGw==",
+      "CwOdySULXyKJAAAf//EiGw==",
+      "CwOd1yULWCKLAQBV/84iGw==",
   };
-  const auto& references = response.get_child("trip.linear_references");
-  EXPECT_EQ(references.size(), 5);
-  for (const auto& reference : references) {
-    const std::string& actual = reference.second.get_value<std::string>();
-    EXPECT_TRUE(std::find(expected.begin(), expected.end(), actual) != expected.end());
-  }
+  std::vector<std::string> references;
+  for (const auto& reference : response.get_child("trip.linear_references"))
+    references.push_back(reference.second.get_value<std::string>());
+  EXPECT_EQ(references.size(), 4);
+  EXPECT_EQ(expected, references);
 }
 
 // Verify that OpenLR references are not present in API response when not asked for
